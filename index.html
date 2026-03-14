@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mind Map — Vas</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f0f0;
+  --surface: #ffffff;
+  --border: #e0e0e0;
+  --text: #3c3c3c;
+  --text-dim: #8a8a8a;
+  --shadow: rgba(0,0,0,0.08);
+  --radius: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Nunito', system-ui, sans-serif;
+  overflow: hidden;
+  width: 100vw; height: 100vh;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+canvas#mapCanvas {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  cursor: grab;
+}
+canvas#mapCanvas:active { cursor: grabbing; }
+
+/* ─── Header ─── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 56px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+#header h1 {
+  font-size: 18px; font-weight: 800; color: #3a4a5c;
+  letter-spacing: -0.3px;
+}
+#header h1 span {
+  color: var(--text-dim); font-weight: 600; margin-left: 10px; font-size: 13px;
+}
+.header-actions { display: flex; gap: 6px; align-items: center; }
+
+/* ─── Buttons (Duolingo-style 3D) ─── */
+.btn {
+  background: #ffffff;
+  border: 2px solid var(--border);
+  border-bottom: 4px solid #cdcdcd;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.1s;
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:hover { background: #f7f7f7; }
+.btn:active { border-bottom-width: 2px; transform: translateY(2px); }
+.btn svg { width: 15px; height: 15px; }
+.btn-icon { padding: 7px 9px; }
+
+.btn-primary {
+  background: #4a90d9;
+  border-color: #3a7bc8;
+  border-bottom-color: #2d62a3;
+  color: #fff;
+}
+.btn-primary:hover { background: #5a9de6; }
+
+.btn-green {
+  background: #58cc02;
+  border-color: #4caf00;
+  border-bottom-color: #3d8c00;
+  color: #fff;
+}
+.btn-green:hover { background: #62d906; }
+
+/* ─── Tooltip ─── */
+#tooltip {
+  position: fixed;
+  background: #ffffff;
+  border: 2px solid var(--border);
+  border-bottom: 4px solid #cdcdcd;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
+  max-width: 260px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+  line-height: 1.5;
+  color: var(--text-dim);
+  box-shadow: 0 4px 16px var(--shadow);
+  font-weight: 600;
+}
+#tooltip .tip-label { color: #3c3c3c; font-weight: 800; margin-bottom: 2px; font-size: 14px; }
+#tooltip .tip-link {
+  color: #4a90d9; font-weight: 700; font-size: 12px; margin-top: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 230px; display: block;
+}
+#tooltip.visible { opacity: 1; }
+
+/* ─── Context Menu ─── */
+#ctxMenu {
+  position: fixed;
+  background: #ffffff;
+  border: 2px solid var(--border);
+  border-bottom: 4px solid #cdcdcd;
+  border-radius: 16px;
+  padding: 8px;
+  min-width: 190px;
+  z-index: 300;
+  display: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  animation: menuPop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes menuPop { from { opacity:0; transform: scale(0.9); } }
+.ctx-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.1s;
+  color: var(--text);
+}
+.ctx-item:hover { background: #f0f4ff; }
+.ctx-item.danger { color: #c44; }
+.ctx-item.danger:hover { background: #fff0f0; }
+.ctx-sep { height: 2px; background: var(--border); margin: 4px 8px; border-radius: 1px; }
+.ctx-icon { width: 20px; text-align: center; font-size: 16px; }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 400;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.15s;
+}
+@keyframes fadeIn { from { opacity:0; } }
+.modal {
+  background: #ffffff;
+  border: 2px solid var(--border);
+  border-bottom: 4px solid #cdcdcd;
+  border-radius: 20px;
+  padding: 28px;
+  width: 400px;
+  max-width: 92vw;
+  box-shadow: 0 16px 64px rgba(0,0,0,0.15);
+  animation: modalPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes modalPop { from { opacity:0; transform: scale(0.92) translateY(10px); } }
+.modal h3 {
+  font-size: 20px; font-weight: 800; margin-bottom: 20px;
+  color: #3a4a5c;
+}
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 12px; font-weight: 800; color: var(--text-dim);
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px;
+}
+.field input, .field textarea {
+  width: 100%;
+  background: #f7f7f7;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus, .field textarea:focus { border-color: #4a90d9; background: #fff; }
+.field textarea { resize: vertical; min-height: 50px; }
+.color-row { display: flex; gap: 7px; flex-wrap: wrap; }
+.color-swatch {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.15s;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.active { border-color: #3c3c3c; box-shadow: 0 2px 0 rgba(0,0,0,0.25); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 22px; }
+.link-tabs { display: flex; gap: 0; margin-bottom: 8px; }
+.link-tab {
+  flex: 1; padding: 7px 0; text-align: center;
+  font-size: 12px; font-weight: 800; cursor: pointer;
+  background: #f0f0f0; color: var(--text-dim);
+  border: 2px solid var(--border); border-bottom: 3px solid #cdcdcd;
+  transition: all 0.1s; user-select: none;
+}
+.link-tab:first-child { border-radius: 10px 0 0 10px; }
+.link-tab:last-child { border-radius: 0 10px 10px 0; }
+.link-tab.active { background: #4a90d9; color: #fff; border-color: #3a7bc8; border-bottom-color: #2d62a3; }
+.link-tab:not(.active):hover { background: #e8e8e8; }
+.link-pane { display: none; }
+.link-pane.active { display: block; }
+.link-input-row { display: flex; gap: 6px; align-items: center; }
+.link-input-row input { flex: 1; }
+.link-input-row .btn { flex-shrink: 0; padding: 10px 12px; }
+.path-hint {
+  font-size: 11px; color: var(--text-dim); margin-top: 4px;
+  font-weight: 600;
+}
+.link-preview {
+  margin-top: 8px; padding: 8px 12px;
+  background: #eef4fb; border-radius: 10px;
+  font-size: 12px; font-weight: 700; color: #4a90d9;
+  display: flex; align-items: center; gap: 8px;
+  word-break: break-all;
+  border: 2px solid #d6e6f7;
+}
+.link-preview .link-type-badge {
+  background: #4a90d9; color: #fff; font-size: 10px;
+  padding: 2px 6px; border-radius: 6px; font-weight: 800;
+  flex-shrink: 0; text-transform: uppercase;
+}
+.link-preview .remove-link {
+  margin-left: auto; cursor: pointer; color: #c44;
+  font-size: 16px; font-weight: 800; flex-shrink: 0;
+  width: 22px; height: 22px; display: flex; align-items: center;
+  justify-content: center; border-radius: 6px;
+  transition: background 0.1s;
+}
+.link-preview .remove-link:hover { background: #ffe0e0; }
+
+/* ─── Legend ─── */
+#legend {
+  position: fixed;
+  bottom: 16px; left: 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-bottom: 4px solid #cdcdcd;
+  border-radius: 16px;
+  padding: 14px 18px;
+  z-index: 80;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 16px var(--shadow);
+}
+#legend h4 {
+  font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 10px; font-weight: 800;
+}
+.legend-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.legend-dot {
+  width: 14px; height: 14px; border-radius: 6px; flex-shrink: 0;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+}
+
+/* ─── Hints ─── */
+#hints {
+  position: fixed;
+  bottom: 16px; right: 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-bottom: 4px solid #cdcdcd;
+  border-radius: 16px;
+  padding: 12px 16px;
+  z-index: 80;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 700;
+  line-height: 1.8;
+  box-shadow: 0 4px 16px var(--shadow);
+}
+.hint-key {
+  display: inline-block;
+  background: #f0f0f0;
+  border: 2px solid var(--border);
+  border-bottom: 3px solid #cdcdcd;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text);
+  margin-right: 3px;
+}
+
+/* ─── Toast ─── */
+#toast {
+  position: fixed;
+  bottom: 28px; left: 50%; transform: translateX(-50%) translateY(60px);
+  background: #3a4a5c;
+  border-radius: 14px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  z-index: 500;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>My Mind Map <span>click to expand · right-click to edit</span></h1>
+  <div class="header-actions">
+    <button class="btn btn-icon" onclick="zoomOut()" title="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    <button class="btn btn-icon" onclick="zoomIn()" title="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    <button class="btn btn-icon" onclick="resetView()" title="Reset view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+    <div style="width:2px;height:28px;background:#e0e0e0;margin:0 4px;border-radius:1px"></div>
+    <button class="btn" onclick="expandAll()">Expand all</button>
+    <button class="btn" onclick="collapseAll()">Collapse</button>
+    <div style="width:2px;height:28px;background:#e0e0e0;margin:0 4px;border-radius:1px"></div>
+    <button class="btn" onclick="loadFromFile()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Load</button>
+    <button class="btn btn-primary" onclick="saveToFile()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save</button>
+  </div>
+</div>
+
+<canvas id="mapCanvas"></canvas>
+<div id="tooltip"><div class="tip-label"></div><div class="tip-desc"></div><div class="tip-link"></div></div>
+<div id="ctxMenu"></div>
+
+<div id="legend">
+  <h4>Branches</h4>
+  <div id="legendItems"></div>
+</div>
+
+<div id="hints">
+  <div><span class="hint-key">Click</span> expand / collapse</div>
+  <div><span class="hint-key">Double click</span> edit node</div>
+  <div><span class="hint-key">Right click</span> add · edit · link · delete</div>
+  <div><span class="hint-key">Scroll</span> zoom</div>
+  <div><span class="hint-key">Drag</span> pan</div>
+</div>
+
+<div id="toast"></div>
+<div id="modalRoot"></div>
+<input type="file" id="fileInput" accept=".json" style="display:none">
+
+<script>
+// =====================================================================
+// PALETTE — Duolingo-inspired with blue/grey/red-brown
+// =====================================================================
+const BRANCH_COLORS = {
+  'freelance':     { fill: '#4a90d9', dark: '#3267a3', text: '#fff' },
+  'projects':      { fill: '#9b6dd7', dark: '#7350a8', text: '#fff' },
+  'monetize':      { fill: '#3abfbf', dark: '#2a9494', text: '#fff' },
+  'admin-urgent':  { fill: '#d4564e', dark: '#a8403a', text: '#fff' },
+  'admin-finance': { fill: '#d9a34a', dark: '#a87c33', text: '#fff' },
+  'admin-career':  { fill: '#5fb86c', dark: '#468a52', text: '#fff' },
+};
+
+const PALETTE = [
+  '#4a90d9','#3abfbf','#5fb86c','#d9a34a','#d4564e','#9b6dd7',
+  '#e88542','#7c8a99','#c75b8f','#5c6bc0','#8d6e63','#607d8b',
+  '#ab47bc','#26a69a','#ef5350','#42a5f5',
+];
+
+// =====================================================================
+// DATA
+// =====================================================================
+let tree = {
+  "id":"root","label":"VAS","color":"#3a4a5c",
+  "tip":"Central hub — everything I'm working on",
+  "children":[
+    {"id":"freelance","label":"Freelancing","color":"#4a90d9","subtitle":"Dev / Tech","tip":"Starting freelance software dev — build a pipeline of clients and projects.","children":[{"id":"n-1773321969198","label":"Ask Jung","color":"#4a90d9","children":[{"id":"n-1773321969200","label":"Marketing","color":"#4a90d9","children":[{"id":"n-1773321969201","label":"Read Video - Create a skill with Job Yourslef content","color":"#4a90d9"}]}]},{"id":"n-1773321969199","label":"Enneagram","color":"#42a5f5"}]},
+    {"id":"projects","label":"Personal Projects","color":"#9b6dd7","subtitle":"Software / Apps","tip":"Side projects — apps, tools, experiments."},
+    {"id":"monetize","label":"Monetization","color":"#3abfbf","subtitle":"Revenue paths","tip":"Turn projects into income streams."},
+    {"id":"admin-urgent","label":"Admin — Urgent","color":"#d4564e","subtitle":"Do this week","tip":"Time-sensitive admin tasks — handle these first!","children":[{"id":"n-1773321969202","label":"Family Accounts","color":"#d4564e"}]},
+    {"id":"admin-finance","label":"Admin — Finance","color":"#d9a34a","subtitle":"Banking","tip":"Financial admin tasks.","children":[{"id":"af-keytrade","label":"Keytrade Bank","color":"#e4b660","tip":"Contact Keytrade to release funds","children":[{"id":"af-k1","label":"Call / Email","color":"#ecc987","tip":"Reach out to the bank"},{"id":"af-k2","label":"Provide Docs","color":"#ecc987","tip":"Any documents they may need"},{"id":"af-k3","label":"Follow Up","color":"#ecc987","tip":"Track until funds are released"}]}]},
+    {"id":"admin-career","label":"Admin — Career","color":"#5fb86c","subtitle":"Opportunities","tip":"Career moves and outreach.","children":[{"id":"ac-ijb","label":"IJB Letter","color":"#76cc82","tip":"Write letter suggesting new work role at IJB","children":[{"id":"ac-ij1","label":"Draft Proposal","color":"#96dba0","tip":"Outline the role / collaboration you're proposing"},{"id":"ac-ij2","label":"Review & Polish","color":"#96dba0","tip":"Refine tone and content"},{"id":"ac-ij3","label":"Send","color":"#96dba0","tip":"Deliver to the right person"}]}]}
+  ]
+};
+
+let expandedSet = new Set(['root']);
+let selectedNodeId = null;
+let idCounter = Date.now();
+function newId() { return 'n-' + (idCounter++); }
+
+// =====================================================================
+// CANVAS
+// =====================================================================
+const cvs = document.getElementById('mapCanvas');
+const c = cvs.getContext('2d');
+let dpr = window.devicePixelRatio || 1;
+let W, H;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  cvs.width = W * dpr; cvs.height = H * dpr;
+  cvs.style.width = W + 'px'; cvs.style.height = H + 'px';
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+window.addEventListener('resize', resize);
+
+let cam = { x: 0, y: 0, k: 1 };
+function s2w(sx, sy) { return { x: (sx - cam.x) / cam.k, y: (sy - cam.y) / cam.k }; }
+
+// =====================================================================
+// LAYOUT
+// =====================================================================
+let flatNodes = [], flatLinks = [];
+
+function layoutTree() {
+  flatNodes = []; flatLinks = [];
+  const cx = W / 2, cy = H / 2;
+
+  function visit(node, parent, angle, dist, depth) {
+    const x = parent ? parent.x + Math.cos(angle) * dist : cx;
+    const y = parent ? parent.y + Math.sin(angle) * dist : cy;
+    const n = {
+      id: node.id, label: node.label, subtitle: node.subtitle,
+      color: node.color || '#888', tip: node.tip || '',
+      link: node.link || '', linkName: node.linkName || '',
+      x, y, depth,
+      hasChildren: !!(node.children && node.children.length),
+      parentId: parent ? parent.id : null,
+    };
+    flatNodes.push(n);
+    if (parent) flatLinks.push({ source: parent.id, target: n.id });
+
+    if (expandedSet.has(node.id) && node.children && node.children.length) {
+      const kids = node.children;
+      const spread = depth === 0 ? Math.PI * 2 : Math.min(Math.PI * 0.75, kids.length * 0.42);
+      const baseAngle = depth === 0 ? -Math.PI / 2 : angle;
+      const startA = depth === 0 ? -Math.PI / 2 : baseAngle - spread / 2;
+      const step = kids.length > 1 ? (depth === 0 ? (Math.PI * 2) / kids.length : spread / (kids.length - 1)) : 0;
+      const nextDist = depth === 0 ? 220 : (depth === 1 ? 160 : 120);
+      kids.forEach((ch, i) => {
+        const a = kids.length === 1 ? baseAngle : startA + step * i;
+        visit(ch, n, a, nextDist, depth + 1);
+      });
+    }
+  }
+  visit(tree, null, 0, 0, 0);
+}
+
+function getNode(id) { return flatNodes.find(n => n.id === id); }
+
+// =====================================================================
+// MEASURE TEXT — compute pill size from label
+// =====================================================================
+function measureNode(n) {
+  const isRoot = n.id === 'root';
+  const fontSize = isRoot ? 18 : (n.depth === 1 ? 14 : (n.depth === 2 ? 12 : 11));
+  c.font = `800 ${fontSize}px Nunito, system-ui, sans-serif`;
+  const labelW = c.measureText(n.label).width;
+
+  let totalH = fontSize + 8;
+  let maxW = labelW;
+  if (n.subtitle) {
+    const subSize = Math.max(9, fontSize - 3);
+    c.font = `700 ${subSize}px Nunito, system-ui, sans-serif`;
+    const subW = c.measureText(n.subtitle).width;
+    maxW = Math.max(maxW, subW);
+    totalH += subSize + 2;
+  }
+
+  const padX = isRoot ? 28 : (n.depth === 1 ? 22 : 16);
+  const padY = isRoot ? 16 : (n.depth === 1 ? 12 : 8);
+  const w = maxW + padX * 2;
+  const h = totalH + padY * 2;
+  const r = h / 2; // pill radius
+  return { w, h, r, fontSize, padX, padY };
+}
+
+// =====================================================================
+// DRAW
+// =====================================================================
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if (hex.length===3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  return { r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16) };
+}
+
+function darkenHex(hex, amt) {
+  const rgb = hexToRgb(hex);
+  const f = 1 - amt;
+  const r2 = Math.round(rgb.r * f), g2 = Math.round(rgb.g * f), b2 = Math.round(rgb.b * f);
+  return `rgb(${r2},${g2},${b2})`;
+}
+
+let hoveredNodeId = null;
+
+function draw() {
+  layoutTree();
+  c.clearRect(0, 0, W, H);
+
+  // Background
+  c.fillStyle = '#f0f0f0';
+  c.fillRect(0, 0, W, H);
+
+  // Subtle dot grid
+  c.save();
+  c.translate(cam.x, cam.y);
+  c.scale(cam.k, cam.k);
+
+  const gridSize = 40;
+  const sx = Math.floor(-cam.x / cam.k / gridSize) * gridSize - gridSize;
+  const sy = Math.floor(-cam.y / cam.k / gridSize) * gridSize - gridSize;
+  const ex = sx + W / cam.k + gridSize * 2;
+  const ey = sy + H / cam.k + gridSize * 2;
+  c.fillStyle = '#d8d8d8';
+  for (let gx = sx; gx < ex; gx += gridSize) {
+    for (let gy = sy; gy < ey; gy += gridSize) {
+      c.beginPath();
+      c.arc(gx, gy, 1, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
+
+  // Measure all nodes first
+  const measurements = {};
+  flatNodes.forEach(n => { measurements[n.id] = measureNode(n); });
+
+  // Links — thick rounded
+  flatLinks.forEach(l => {
+    const s = getNode(l.source), t = getNode(l.target);
+    if (!s || !t) return;
+    const dx = t.x - s.x, dy = t.y - s.y;
+    const mx = (s.x + t.x) / 2, my = (s.y + t.y) / 2;
+    const cx2 = mx - dy * 0.1, cy2 = my + dx * 0.1;
+
+    c.beginPath();
+    c.moveTo(s.x, s.y);
+    c.quadraticCurveTo(cx2, cy2, t.x, t.y);
+    c.strokeStyle = darkenHex(t.color, 0.15);
+    c.lineWidth = 3;
+    c.lineCap = 'round';
+    c.globalAlpha = 0.25;
+    c.stroke();
+    c.globalAlpha = 1;
+  });
+
+  // Nodes — Duolingo-style 3D pills
+  flatNodes.forEach(n => {
+    const m = measurements[n.id];
+    const isRoot = n.id === 'root';
+    const isHov = hoveredNodeId === n.id;
+    const x = n.x, y = n.y;
+    const hw = m.w / 2, hh = m.h / 2;
+    const pillR = Math.min(hw, hh);
+
+    // Bottom border (3D effect)
+    const bottomOff = isRoot ? 5 : (n.depth === 1 ? 4 : 3);
+    c.beginPath();
+    roundedRect(c, x - hw, y - hh + bottomOff, m.w, m.h, pillR);
+    c.fillStyle = darkenHex(n.color, 0.25);
+    c.fill();
+
+    // Main pill
+    c.beginPath();
+    roundedRect(c, x - hw, y - hh, m.w, m.h, pillR);
+    c.fillStyle = n.color;
+    c.fill();
+
+    // Top highlight
+    c.save();
+    c.beginPath();
+    roundedRect(c, x - hw, y - hh, m.w, m.h, pillR);
+    c.clip();
+    const hlGrad = c.createLinearGradient(x, y - hh, x, y + hh);
+    hlGrad.addColorStop(0, 'rgba(255,255,255,0.20)');
+    hlGrad.addColorStop(0.5, 'rgba(255,255,255,0)');
+    c.fillStyle = hlGrad;
+    c.fillRect(x - hw, y - hh, m.w, m.h);
+    c.restore();
+
+    // Hover ring
+    if (isHov) {
+      c.beginPath();
+      roundedRect(c, x - hw - 4, y - hh - 4, m.w + 8, m.h + 8, pillR + 4);
+      c.strokeStyle = n.color;
+      c.lineWidth = 3;
+      c.globalAlpha = 0.35;
+      c.stroke();
+      c.globalAlpha = 1;
+    }
+
+    // Label
+    const textColor = isLightColor(n.color) ? '#3c3c3c' : '#ffffff';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+
+    if (n.subtitle) {
+      // Label
+      c.font = `800 ${m.fontSize}px Nunito, system-ui, sans-serif`;
+      c.fillStyle = textColor;
+      c.fillText(n.label, x, y - (m.fontSize * 0.15) - 3);
+      // Subtitle
+      const subSize = Math.max(9, m.fontSize - 3);
+      c.font = `700 ${subSize}px Nunito, system-ui, sans-serif`;
+      c.fillStyle = textColor;
+      c.globalAlpha = 0.7;
+      c.fillText(n.subtitle, x, y + m.fontSize * 0.55 + 1);
+      c.globalAlpha = 1;
+    } else {
+      c.font = `800 ${m.fontSize}px Nunito, system-ui, sans-serif`;
+      c.fillStyle = textColor;
+      c.fillText(n.label, x, y);
+    }
+
+    // Expand/collapse badge
+    if (n.hasChildren) {
+      const isExp = expandedSet.has(n.id);
+      const bx = x + hw - 2;
+      const by = y - hh - 2;
+      const br = 10;
+
+      // Badge shadow
+      c.beginPath();
+      c.arc(bx, by + 2, br, 0, Math.PI * 2);
+      c.fillStyle = 'rgba(0,0,0,0.15)';
+      c.fill();
+
+      // Badge
+      c.beginPath();
+      c.arc(bx, by, br, 0, Math.PI * 2);
+      c.fillStyle = isExp ? '#7c8a99' : '#58cc02';
+      c.fill();
+
+      // Badge top highlight
+      c.beginPath();
+      c.arc(bx, by, br, 0, Math.PI * 2);
+      const bGrad = c.createLinearGradient(bx, by - br, bx, by + br);
+      bGrad.addColorStop(0, 'rgba(255,255,255,0.25)');
+      bGrad.addColorStop(0.6, 'rgba(255,255,255,0)');
+      c.fillStyle = bGrad;
+      c.fill();
+
+      // +/− icon
+      c.font = '800 12px Nunito, system-ui, sans-serif';
+      c.fillStyle = '#fff';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(isExp ? '−' : '+', bx, by);
+    }
+
+    // Link badge (bottom-right)
+    if (n.link) {
+      const lx = x + hw - 4;
+      const ly = y + hh + 2;
+      const lr = 9;
+
+      // Badge shadow
+      c.beginPath();
+      c.arc(lx, ly + 2, lr, 0, Math.PI * 2);
+      c.fillStyle = 'rgba(0,0,0,0.12)';
+      c.fill();
+
+      // Badge body
+      c.beginPath();
+      c.arc(lx, ly, lr, 0, Math.PI * 2);
+      c.fillStyle = '#4a90d9';
+      c.fill();
+
+      // Highlight
+      const lGrad = c.createLinearGradient(lx, ly - lr, lx, ly + lr);
+      lGrad.addColorStop(0, 'rgba(255,255,255,0.25)');
+      lGrad.addColorStop(0.6, 'rgba(255,255,255,0)');
+      c.beginPath();
+      c.arc(lx, ly, lr, 0, Math.PI * 2);
+      c.fillStyle = lGrad;
+      c.fill();
+
+      // Chain-link icon (drawn as two interlocking arcs)
+      c.strokeStyle = '#fff';
+      c.lineWidth = 1.6;
+      c.lineCap = 'round';
+      // Left arc
+      c.beginPath();
+      c.arc(lx - 2, ly, 3.5, -0.8, 0.8);
+      c.stroke();
+      // Right arc
+      c.beginPath();
+      c.arc(lx + 2, ly, 3.5, Math.PI - 0.8, Math.PI + 0.8);
+      c.stroke();
+    }
+  });
+
+  c.restore();
+  updateLegend();
+}
+
+function roundedRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function isLightColor(hex) {
+  const rgb = hexToRgb(hex);
+  return (rgb.r * 0.299 + rgb.g * 0.587 + rgb.b * 0.114) > 160;
+}
+
+// =====================================================================
+// LEGEND
+// =====================================================================
+function updateLegend() {
+  const el = document.getElementById('legendItems');
+  if (!tree.children) { el.innerHTML = ''; return; }
+  el.innerHTML = tree.children.map(ch =>
+    `<div class="legend-row"><div class="legend-dot" style="background:${ch.color}"></div>${ch.label}</div>`
+  ).join('');
+}
+
+// =====================================================================
+// HIT TEST — pill-based
+// =====================================================================
+function hitTest(sx, sy) {
+  const w = s2w(sx, sy);
+  for (let i = flatNodes.length - 1; i >= 0; i--) {
+    const n = flatNodes[i];
+    const m = measureNode(n);
+    const hw = m.w / 2, hh = m.h / 2;
+    if (w.x >= n.x - hw - 6 && w.x <= n.x + hw + 6 && w.y >= n.y - hh - 6 && w.y <= n.y + hh + 6) return n;
+  }
+  return null;
+}
+
+// =====================================================================
+// INTERACTION
+// =====================================================================
+let isPanning = false, panStart = { x: 0, y: 0 }, didDrag = false;
+
+cvs.addEventListener('mousedown', e => {
+  if (e.button === 0) {
+    isPanning = true; didDrag = false;
+    panStart = { x: e.clientX - cam.x, y: e.clientY - cam.y };
+  }
+  hideCtxMenu();
+});
+cvs.addEventListener('dblclick', e => {
+  const hit = hitTest(e.clientX, e.clientY);
+  if (hit) {
+    e.preventDefault();
+    openEditModal(hit.id);
+  }
+});
+window.addEventListener('mousemove', e => {
+  const hit = hitTest(e.clientX, e.clientY);
+  if (hit && (hit.tip || hit.link)) {
+    hoveredNodeId = hit.id;
+    const tt = document.getElementById('tooltip');
+    tt.querySelector('.tip-label').textContent = hit.label;
+    tt.querySelector('.tip-desc').textContent = hit.tip || '';
+    const linkEl = tt.querySelector('.tip-link');
+    if (hit.link) {
+      const displayLink = hit.linkName || hit.link;
+      linkEl.textContent = '\u{1F517} ' + (displayLink.length > 45 ? displayLink.slice(0, 42) + '...' : displayLink);
+      linkEl.style.display = 'block';
+    } else {
+      linkEl.style.display = 'none';
+    }
+    tt.style.left = (e.clientX + 16) + 'px';
+    tt.style.top = (e.clientY + 16) + 'px';
+    tt.classList.add('visible');
+  } else {
+    hoveredNodeId = null;
+    document.getElementById('tooltip').classList.remove('visible');
+  }
+  if (isPanning) {
+    const dx = e.clientX - panStart.x - cam.x;
+    const dy = e.clientY - panStart.y - cam.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
+    cam.x = e.clientX - panStart.x;
+    cam.y = e.clientY - panStart.y;
+  }
+  cvs.style.cursor = hit ? 'pointer' : (isPanning ? 'grabbing' : 'grab');
+  draw();
+});
+window.addEventListener('mouseup', e => {
+  if (e.button === 0 && !didDrag) {
+    const hit = hitTest(e.clientX, e.clientY);
+    if (hit && hit.id !== 'root') {
+      if (expandedSet.has(hit.id)) collapseRec(hit.id);
+      else expandedSet.add(hit.id);
+      draw();
+    }
+  }
+  isPanning = false;
+});
+
+cvs.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  const newK = Math.min(3, Math.max(0.2, cam.k * delta));
+  cam.x = e.clientX - (e.clientX - cam.x) * (newK / cam.k);
+  cam.y = e.clientY - (e.clientY - cam.y) * (newK / cam.k);
+  cam.k = newK;
+  draw();
+}, { passive: false });
+
+cvs.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const hit = hitTest(e.clientX, e.clientY);
+  if (!hit) { hideCtxMenu(); return; }
+  selectedNodeId = hit.id;
+  showCtxMenu(e.clientX, e.clientY, hit);
+});
+
+// =====================================================================
+// CONTEXT MENU
+// =====================================================================
+function showCtxMenu(x, y, node) {
+  const menu = document.getElementById('ctxMenu');
+  const isRoot = node.id === 'root';
+  const treeNode = findInTree(tree, node.id);
+  const hasLink = treeNode && treeNode.link;
+  let html = '';
+  if (hasLink) {
+    const linkDisplay = treeNode.linkName || treeNode.link;
+    const short = linkDisplay.length > 30 ? linkDisplay.slice(0, 27) + '...' : linkDisplay;
+    html += `<div class="ctx-item" onclick="openNodeLink('${node.id}')" style="color:#4a90d9"><span class="ctx-icon">\u{1F517}</span> Open link</div>`;
+    html += `<div class="ctx-sep"></div>`;
+  }
+  html += `<div class="ctx-item" onclick="openEditModal('${node.id}')"><span class="ctx-icon">&#9998;</span> Edit</div>`;
+  html += `<div class="ctx-item" onclick="openAddModal('${node.id}')"><span class="ctx-icon">&#43;</span> Add child</div>`;
+  if (!isRoot) {
+    html += `<div class="ctx-sep"></div>`;
+    html += `<div class="ctx-item danger" onclick="deleteNode('${node.id}')"><span class="ctx-icon">&#10005;</span> Delete</div>`;
+  }
+  menu.innerHTML = html;
+  menu.style.display = 'block';
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  menu.style.left = Math.min(x, W - mw - 8) + 'px';
+  menu.style.top = Math.min(y, H - mh - 8) + 'px';
+}
+function hideCtxMenu() { document.getElementById('ctxMenu').style.display = 'none'; }
+document.addEventListener('click', hideCtxMenu);
+
+// =====================================================================
+// TREE OPERATIONS
+// =====================================================================
+function findInTree(node, id) {
+  if (node.id === id) return node;
+  if (node.children) { for (const ch of node.children) { const r = findInTree(ch, id); if (r) return r; } }
+  return null;
+}
+function findParent(node, id) {
+  if (node.children) { for (const ch of node.children) { if (ch.id === id) return node; const r = findParent(ch, id); if (r) return r; } }
+  return null;
+}
+
+function openNodeLink(id) {
+  hideCtxMenu();
+  const node = findInTree(tree, id);
+  if (node && node.link) {
+    let url = node.link;
+    // If it looks like a local path, convert to file:// URL
+    if (url.startsWith('/') || url.match(/^[A-Z]:\\/i)) {
+      url = 'file://' + url;
+    }
+    window.open(url, '_blank');
+  }
+}
+
+function deleteNode(id) {
+  hideCtxMenu();
+  if (id === 'root') return;
+  const parent = findParent(tree, id);
+  if (parent && parent.children) {
+    parent.children = parent.children.filter(ch => ch.id !== id);
+    expandedSet.delete(id);
+    toast('Deleted!');
+    draw();
+  }
+}
+function addChildNode(pid, label, color, tip, subtitle, link, linkName) {
+  const parent = findInTree(tree, pid);
+  if (!parent) return;
+  if (!parent.children) parent.children = [];
+  const child = { id: newId(), label, color: color || parent.color, tip: tip || '', subtitle: subtitle || '' };
+  if (link) { child.link = link; if (linkName) child.linkName = linkName; }
+  parent.children.push(child);
+  expandedSet.add(pid);
+  toast('Added!');
+  draw();
+}
+function updateNode(id, label, color, tip, subtitle, link, linkName) {
+  const node = findInTree(tree, id);
+  if (!node) return;
+  node.label = label; node.color = color; node.tip = tip;
+  if (subtitle !== undefined) node.subtitle = subtitle;
+  if (link !== undefined) {
+    if (link) { node.link = link; node.linkName = linkName || ''; }
+    else { delete node.link; delete node.linkName; }
+  }
+  toast('Updated!');
+  draw();
+}
+
+// =====================================================================
+// MODALS
+// =====================================================================
+function openModal(html) {
+  document.getElementById('modalRoot').innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;
+  setTimeout(() => { const inp = document.querySelector('.modal input'); if (inp) inp.focus(); }, 50);
+}
+function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
+
+let _modalColor = '#4a90d9';
+function colorSwatches(sel) {
+  return `<div class="color-row">${PALETTE.map(clr =>
+    `<div class="color-swatch ${clr===sel?'active':''}" style="background:${clr}" data-c="${clr}" onclick="pickColor(this,'${clr}')"></div>`
+  ).join('')}</div>`;
+}
+function pickColor(el, clr) {
+  _modalColor = clr;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function linkFieldHtml(linkVal, linkNameVal) {
+  const hasLink = !!linkVal;
+  const isUrl = linkVal && (linkVal.startsWith('http') || linkVal.startsWith('//'));
+  return `
+    <div class="link-tabs">
+      <div class="link-tab active" onclick="switchLinkTab('url',this)">URL / Web Link</div>
+      <div class="link-tab" onclick="switchLinkTab('local',this)">Local Path</div>
+    </div>
+    <div class="link-pane active" id="link-url-pane">
+      <input id="m-link-url" value="${esc(isUrl ? linkVal : '')}" placeholder="https://drive.google.com/... or any URL">
+    </div>
+    <div class="link-pane" id="link-local-pane">
+      <input id="m-link-local" value="${esc(!isUrl && linkVal ? linkVal : '')}" placeholder="/Users/vpe/Dev/my-project">
+      <div class="path-hint">Paste the full path from Finder (right-click &rarr; Get Info &rarr; Where)</div>
+    </div>
+    <input id="m-linkname" value="${esc(linkNameVal || '')}" placeholder="Display name (optional)" style="margin-top:8px">
+    ${hasLink ? `<div class="link-preview" id="linkPreview"><span class="link-type-badge">${isUrl ? 'URL' : 'LOCAL'}</span>${esc(linkNameVal || linkVal).slice(0,60)}<span class="remove-link" onclick="clearLinkField()">&times;</span></div>` : ''}
+  `;
+}
+
+function switchLinkTab(tab, el) {
+  document.querySelectorAll('.link-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.link-pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('link-' + tab + '-pane').classList.add('active');
+  // Focus the visible input
+  setTimeout(() => {
+    const inp = document.querySelector('.link-pane.active input');
+    if (inp) inp.focus();
+  }, 50);
+}
+
+function getModalLink() {
+  const urlVal = document.getElementById('m-link-url').value.trim();
+  const localVal = document.getElementById('m-link-local').value.trim();
+  // Return whichever has content; prefer the active tab
+  const urlPane = document.getElementById('link-url-pane');
+  if (urlPane.classList.contains('active')) {
+    return urlVal || localVal;
+  }
+  return localVal || urlVal;
+}
+
+function openAddModal(pid) {
+  hideCtxMenu();
+  const parent = findInTree(tree, pid);
+  _modalColor = parent ? parent.color : '#4a90d9';
+  openModal(`
+    <h3>Add child node</h3>
+    <div class="field"><label>Label</label><input id="m-label" placeholder="Node name"></div>
+    <div class="field"><label>Description</label><textarea id="m-tip" placeholder="Optional note" rows="2"></textarea></div>
+    <div class="field"><label>Link (optional)</label>${linkFieldHtml('', '')}</div>
+    <div class="field"><label>Color</label>${colorSwatches(_modalColor)}</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" onclick="doAdd('${pid}')">Add</button>
+    </div>
+  `);
+}
+function doAdd(pid) {
+  const label = document.getElementById('m-label').value.trim();
+  if (!label) { document.getElementById('m-label').style.borderColor='#d4564e'; return; }
+  const link = getModalLink();
+  const linkName = document.getElementById('m-linkname').value.trim();
+  addChildNode(pid, label, _modalColor, document.getElementById('m-tip').value.trim(), '', link, linkName);
+  closeModal();
+}
+
+function openEditModal(id) {
+  hideCtxMenu();
+  const node = findInTree(tree, id);
+  if (!node) return;
+  _modalColor = node.color;
+  const linkVal = node.link || '';
+  const linkNameVal = node.linkName || '';
+  openModal(`
+    <h3>Edit node</h3>
+    <div class="field"><label>Label</label><input id="m-label" value="${esc(node.label)}"></div>
+    <div class="field"><label>Subtitle</label><input id="m-sub" value="${esc(node.subtitle||'')}" placeholder="Optional"></div>
+    <div class="field"><label>Description</label><textarea id="m-tip" rows="2">${esc(node.tip||'')}</textarea></div>
+    <div class="field"><label>Link (optional)</label>${linkFieldHtml(linkVal, linkNameVal)}</div>
+    <div class="field"><label>Color</label>${colorSwatches(_modalColor)}</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doEdit('${id}')">Save</button>
+    </div>
+  `);
+  // Auto-switch to local tab if existing link is a local path
+  if (linkVal && !linkVal.startsWith('http') && !linkVal.startsWith('//')) {
+    setTimeout(() => {
+      const localTab = document.querySelectorAll('.link-tab')[1];
+      if (localTab) switchLinkTab('local', localTab);
+    }, 60);
+  }
+}
+function doEdit(id) {
+  const label = document.getElementById('m-label').value.trim();
+  if (!label) { document.getElementById('m-label').style.borderColor='#d4564e'; return; }
+  const link = getModalLink();
+  const linkName = document.getElementById('m-linkname').value.trim();
+  updateNode(id, label, _modalColor, document.getElementById('m-tip').value.trim(), document.getElementById('m-sub').value.trim(), link, linkName);
+  closeModal();
+}
+function clearLinkField() {
+  document.getElementById('m-link-url').value = '';
+  document.getElementById('m-link-local').value = '';
+  document.getElementById('m-linkname').value = '';
+  const preview = document.getElementById('linkPreview');
+  if (preview) preview.remove();
+}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// =====================================================================
+// SAVE / LOAD
+// =====================================================================
+function cleanTree(node) {
+  const o = { id: node.id, label: node.label, color: node.color };
+  if (node.subtitle) o.subtitle = node.subtitle;
+  if (node.tip) o.tip = node.tip;
+  if (node.link) o.link = node.link;
+  if (node.linkName) o.linkName = node.linkName;
+  if (node.children && node.children.length) o.children = node.children.map(cleanTree);
+  return o;
+}
+function saveToFile() {
+  const now = new Date();
+  const datePart = now.toISOString().slice(0,10); // YYYY-MM-DD
+  const blob = new Blob([JSON.stringify(cleanTree(tree), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `mindmap-${datePart}.json`; a.click(); URL.revokeObjectURL(a.href);
+  toast(`Saved mindmap-${datePart}.json`);
+}
+function loadFromFile() { document.getElementById('fileInput').click(); }
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.id || !data.label) throw new Error('Invalid');
+      tree = data;
+      expandedSet = new Set(['root']);
+      if (tree.children) tree.children.forEach(ch => expandedSet.add(ch.id));
+      resetView(); toast('Loaded ' + file.name);
+    } catch (err) { toast('Error: ' + err.message); }
+  };
+  reader.readAsText(file); e.target.value = '';
+});
+
+// =====================================================================
+// UTILS
+// =====================================================================
+function collapseRec(id) {
+  expandedSet.delete(id);
+  const node = findInTree(tree, id);
+  if (node && node.children) node.children.forEach(ch => collapseRec(ch.id));
+}
+function expandAll() { function v(n) { expandedSet.add(n.id); if (n.children) n.children.forEach(v); } v(tree); draw(); }
+function collapseAll() { expandedSet = new Set(['root']); draw(); }
+function zoomIn() { cam.k = Math.min(3, cam.k * 1.25); draw(); }
+function zoomOut() { cam.k = Math.max(0.2, cam.k * 0.8); draw(); }
+function resetView() { cam = { x: 0, y: 0, k: 1 }; draw(); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); hideCtxMenu(); }
+  if (e.key === 'Enter' && document.querySelector('.modal')) {
+    const btn = document.querySelector('.modal .btn-primary, .modal .btn-green');
+    if (btn) btn.click();
+  }
+});
+
+// =====================================================================
+// INIT
+// =====================================================================
+resize();
+setTimeout(() => { tree.children.forEach(ch => expandedSet.add(ch.id)); draw(); }, 200);
+</script>
+</body>
+</html>
