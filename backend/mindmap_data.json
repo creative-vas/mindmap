@@ -1,0 +1,144 @@
+{
+  "nodes": [
+    {
+      "id": "root",
+      "label": "My Life",
+      "type": "root",
+      "x": 0,
+      "y": 0,
+      "image": null
+    },
+    {
+      "id": "freelance",
+      "label": "Freelancing",
+      "type": "category",
+      "x": -300,
+      "y": -150,
+      "image": null,
+      "color": "#6C63FF"
+    },
+    {
+      "id": "projects",
+      "label": "Personal Projects",
+      "type": "category",
+      "x": 300,
+      "y": -150,
+      "image": null,
+      "color": "#FF6584"
+    },
+    {
+      "id": "learning",
+      "label": "Learning",
+      "type": "category",
+      "x": 0,
+      "y": 250,
+      "image": null,
+      "color": "#00C9A7"
+    },
+    {
+      "id": "f1",
+      "label": "Web Development",
+      "type": "item",
+      "x": -500,
+      "y": -300,
+      "image": null,
+      "parent": "freelance"
+    },
+    {
+      "id": "f2",
+      "label": "Design",
+      "type": "item",
+      "x": -450,
+      "y": -50,
+      "image": null,
+      "parent": "freelance"
+    },
+    {
+      "id": "f3",
+      "label": "Consulting",
+      "type": "item",
+      "x": -200,
+      "y": -350,
+      "image": null,
+      "parent": "freelance"
+    },
+    {
+      "id": "p1",
+      "label": "App Ideas",
+      "type": "item",
+      "x": 450,
+      "y": -300,
+      "image": null,
+      "parent": "projects"
+    },
+    {
+      "id": "p2",
+      "label": "Open Source",
+      "type": "item",
+      "x": 500,
+      "y": -50,
+      "image": null,
+      "parent": "projects"
+    },
+    {
+      "id": "l1",
+      "label": "New Skills",
+      "type": "item",
+      "x": -150,
+      "y": 400,
+      "image": null,
+      "parent": "learning"
+    },
+    {
+      "id": "l2",
+      "label": "Certifications",
+      "type": "item",
+      "x": 150,
+      "y": 400,
+      "image": null,
+      "parent": "learning"
+    }
+  ],
+  "edges": [
+    {
+      "from": "root",
+      "to": "freelance"
+    },
+    {
+      "from": "root",
+      "to": "projects"
+    },
+    {
+      "from": "root",
+      "to": "learning"
+    },
+    {
+      "from": "freelance",
+      "to": "f1"
+    },
+    {
+      "from": "freelance",
+      "to": "f2"
+    },
+    {
+      "from": "freelance",
+      "to": "f3"
+    },
+    {
+      "from": "projects",
+      "to": "p1"
+    },
+    {
+      "from": "projects",
+      "to": "p2"
+    },
+    {
+      "from": "learning",
+      "to": "l1"
+    },
+    {
+      "from": "learning",
+      "to": "l2"
+    }
+  ]
+}
