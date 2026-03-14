@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mind Map — Vas</title>
+<title>Mind Map</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -328,7 +328,7 @@ canvas#mapCanvas:active { cursor: grabbing; }
 <body>
 
 <div id="header">
-  <h1>My Mind Map <span>click to expand · right-click to edit</span></h1>
+  <h1>Mind Map <span>click to expand · right-click to add</span></h1>
   <div class="header-actions">
     <button class="btn btn-icon" onclick="zoomOut()" title="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     <button class="btn btn-icon" onclick="zoomIn()" title="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
@@ -368,12 +368,9 @@ canvas#mapCanvas:active { cursor: grabbing; }
 // PALETTE — Duolingo-inspired with blue/grey/red-brown
 // =====================================================================
 const BRANCH_COLORS = {
-  'freelance':     { fill: '#4a90d9', dark: '#3267a3', text: '#fff' },
-  'projects':      { fill: '#9b6dd7', dark: '#7350a8', text: '#fff' },
-  'monetize':      { fill: '#3abfbf', dark: '#2a9494', text: '#fff' },
-  'admin-urgent':  { fill: '#d4564e', dark: '#a8403a', text: '#fff' },
-  'admin-finance': { fill: '#d9a34a', dark: '#a87c33', text: '#fff' },
-  'admin-career':  { fill: '#5fb86c', dark: '#468a52', text: '#fff' },
+  'ideas':    { fill: '#4a90d9', dark: '#3267a3', text: '#fff' },
+  'tasks':    { fill: '#5fb86c', dark: '#468a52', text: '#fff' },
+  'notes':    { fill: '#d9a34a', dark: '#a87c33', text: '#fff' },
 };
 
 const PALETTE = [
@@ -386,15 +383,12 @@ const PALETTE = [
 // DATA
 // =====================================================================
 let tree = {
-  "id":"root","label":"VAS","color":"#3a4a5c",
-  "tip":"Central hub — everything I'm working on",
+  "id":"root","label":"My Map","color":"#3a4a5c",
+  "tip":"Your central hub — right-click to edit",
   "children":[
-    {"id":"freelance","label":"Freelancing","color":"#4a90d9","subtitle":"Dev / Tech","tip":"Starting freelance software dev — build a pipeline of clients and projects.","children":[{"id":"n-1773321969198","label":"Ask Jung","color":"#4a90d9","children":[{"id":"n-1773321969200","label":"Marketing","color":"#4a90d9","children":[{"id":"n-1773321969201","label":"Read Video - Create a skill with Job Yourslef content","color":"#4a90d9"}]}]},{"id":"n-1773321969199","label":"Enneagram","color":"#42a5f5"}]},
-    {"id":"projects","label":"Personal Projects","color":"#9b6dd7","subtitle":"Software / Apps","tip":"Side projects — apps, tools, experiments."},
-    {"id":"monetize","label":"Monetization","color":"#3abfbf","subtitle":"Revenue paths","tip":"Turn projects into income streams."},
-    {"id":"admin-urgent","label":"Admin — Urgent","color":"#d4564e","subtitle":"Do this week","tip":"Time-sensitive admin tasks — handle these first!","children":[{"id":"n-1773321969202","label":"Family Accounts","color":"#d4564e"}]},
-    {"id":"admin-finance","label":"Admin — Finance","color":"#d9a34a","subtitle":"Banking","tip":"Financial admin tasks.","children":[{"id":"af-keytrade","label":"Keytrade Bank","color":"#e4b660","tip":"Contact Keytrade to release funds","children":[{"id":"af-k1","label":"Call / Email","color":"#ecc987","tip":"Reach out to the bank"},{"id":"af-k2","label":"Provide Docs","color":"#ecc987","tip":"Any documents they may need"},{"id":"af-k3","label":"Follow Up","color":"#ecc987","tip":"Track until funds are released"}]}]},
-    {"id":"admin-career","label":"Admin — Career","color":"#5fb86c","subtitle":"Opportunities","tip":"Career moves and outreach.","children":[{"id":"ac-ijb","label":"IJB Letter","color":"#76cc82","tip":"Write letter suggesting new work role at IJB","children":[{"id":"ac-ij1","label":"Draft Proposal","color":"#96dba0","tip":"Outline the role / collaboration you're proposing"},{"id":"ac-ij2","label":"Review & Polish","color":"#96dba0","tip":"Refine tone and content"},{"id":"ac-ij3","label":"Send","color":"#96dba0","tip":"Deliver to the right person"}]}]}
+    {"id":"ideas","label":"Ideas","color":"#4a90d9","subtitle":"Brainstorm","tip":"Capture your ideas here."},
+    {"id":"tasks","label":"Tasks","color":"#5fb86c","subtitle":"To do","tip":"Things to get done."},
+    {"id":"notes","label":"Notes","color":"#d9a34a","subtitle":"Reference","tip":"Useful notes and links."}
   ]
 };
 
@@ -1034,7 +1028,7 @@ function openEditModal(id) {
       <button class="btn btn-primary" onclick="doEdit('${id}')">Save</button>
     </div>
   `);
-  // Auto-switch to local tab if existing link is a local path
+  // Auto-switch to local tab if existing link is a path
   if (linkVal && !linkVal.startsWith('http') && !linkVal.startsWith('//')) {
     setTimeout(() => {
       const localTab = document.querySelectorAll('.link-tab')[1];
